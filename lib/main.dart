@@ -1,125 +1,277 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_testapp/widget.dart';
+import 'package:ptnet_plugin/data.dart';
+import 'dart:async';
 
+import 'package:ptnet_plugin/ptnet_plugin.dart';
 void main() {
   runApp(const MyApp());
 }
 
-class MyApp extends StatelessWidget {
+class MyApp extends StatefulWidget {
   const MyApp({super.key});
 
-  // This widget is the root of your application.
   @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Flutter Demo',
-      theme: ThemeData(
-        // This is the theme of your application.
-        //
-        // TRY THIS: Try running your application with "flutter run". You'll see
-        // the application has a purple toolbar. Then, without quitting the app,
-        // try changing the seedColor in the colorScheme below to Colors.green
-        // and then invoke "hot reload" (save your changes or press the "hot
-        // reload" button in a Flutter-supported IDE, or press "r" if you used
-        // the command line to start the app).
-        //
-        // Notice that the counter didn't reset back to zero; the application
-        // state is not lost during the reload. To reset the state, use hot
-        // restart instead.
-        //
-        // This works for code too, not just values: Most code changes can be
-        // tested with just a hot reload.
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-        useMaterial3: true,
-      ),
-      home: const MyHomePage(title: 'Flutter Demo Home Page'),
-    );
+  State<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> {
+  String _result = '';
+  final _ptnetPlugin = PtnetPlugin();
+
+  // Controller - UI
+  final inputTTL = TextEditingController();
+  final inputServer = TextEditingController();
+  final inputAddress = TextEditingController();
+  final inputPortEnd = TextEditingController();
+  final inputPortStart = TextEditingController();
+  var enableTTL = false;
+  var visibleTTL = false;
+  var enableServer = false;
+  var visibleServer = false;
+  var enablePort = false;
+  var visiblePort = false;
+  var visibleProgress = false;
+  var executeEnable = true;
+  var editEnable = true;
+
+  // Unchanged Values
+  final int _initTTL = -1;
+  final _initAddress = 'zing.vn';
+  final int _startPort = 1;
+  final String _dnsServer = "8.8.8.8";
+
+  // Changed Values
+  int _currentPort = 1;
+  int _endPort = 1023;
+
+  // DropdownList
+  String actionValue = 'Ping';
+  var actionValues = [
+    'Ping',
+    'PageLoad',
+    'DnsLookup',
+    'PortScan',
+    'TraceRoute'
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    initInput();
   }
-}
 
-class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key, required this.title});
-
-  // This widget is the home page of your application. It is stateful, meaning
-  // that it has a State object (defined below) that contains fields that affect
-  // how it looks.
-
-  // This class is the configuration for the state. It holds the values (in this
-  // case the title) provided by the parent (in this case the App widget) and
-  // used by the build method of the State. Fields in a Widget subclass are
-  // always marked "final".
-
-  final String title;
-
-  @override
-  State<MyHomePage> createState() => _MyHomePageState();
-}
-
-class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
-
-  void _incrementCounter() {
+  void initInput() {
+    inputAddress.text = _initAddress;
+    _result = "";
+    executeEnable = true;
     setState(() {
-      // This call to setState tells the Flutter framework that something has
-      // changed in this State, which causes it to rerun the build method below
-      // so that the display can reflect the updated values. If we changed
-      // _counter without calling setState(), then the build method would not be
-      // called again, and so nothing would appear to happen.
-      _counter++;
+      switch (actionValue) {
+        case "TraceRoute":
+          enableTTL = true;
+          visibleTTL = true;
+          enableServer = false;
+          visibleServer = false;
+          enablePort = false;
+          visiblePort = false;
+          visibleProgress = false;
+          inputTTL.text = "$_initTTL";
+          break;
+        case "DnsLookup":
+          enableTTL = false;
+          visibleTTL = false;
+          enableServer = true;
+          visibleServer = true;
+          enablePort = false;
+          visiblePort = false;
+          visibleProgress = false;
+          inputServer.text = "$_dnsServer";
+          break;
+        case "PortScan":
+          enableTTL = false;
+          visibleTTL = false;
+          enableServer = false;
+          visibleServer = false;
+          enablePort = true;
+          visiblePort = true;
+          visibleProgress = false;
+          inputPortStart.text = "$_startPort";
+          inputPortEnd.text = "$_endPort";
+          break;
+        default:
+          enableTTL = false;
+          visibleTTL = false;
+          enableServer = false;
+          visibleServer = false;
+          enablePort = false;
+          visiblePort = false;
+          visibleProgress = false;
+      }
+    });
+  }
+
+  Future<void> pingState() async {
+    // Start process  -------------------------------------------
+    setState(() {
+      executeEnable = false;
+    });
+
+    PingDTO pingResult = PingDTO(address: "", ip: "", time: -1.0);
+    String error = "";
+    String address =
+        (inputAddress.text.isNotEmpty) ? inputAddress.text : _initAddress;
+
+    // Execute
+    try {
+      // pingResult = await _ptnetPlugin.getPingResult(address) ??
+      //     'Invalid Ping Result';
+      pingResult = await _ptnetPlugin.getPingResult(address) ??
+          PingDTO(address: "", ip: "", time: -1.0);
+    } on Exception catch (e) {
+      error = e.toString();
+    }
+
+    if (!mounted) return;
+
+    // End process   -------------------------------------------
+    setState(() {
+      if (pingResult.time == -1.0) {
+        _result = 'Failed to get ping result.';
+      } else {
+        _result = "$pingResult";
+      }
+      executeEnable = true;
+    });
+  }
+
+  Future<void> pageLoadState() async {
+    // Start process  -------------------------------------------
+    setState(() {
+      _result = "";
+      executeEnable = false;
+      editEnable = false;
+    });
+
+    String address =
+        (inputAddress.text.isNotEmpty) ? inputAddress.text : _initAddress;
+    PageLoadDTO pageLoadResult = PageLoadDTO(address: "", time: -1.0);
+
+    int time = 2;
+    String error = "";
+    // Execute
+    while (time > 0) {
+      if (executeEnable) {
+        break;
+      } else {
+        try {
+          pageLoadResult = await _ptnetPlugin.getPageLoadResult(address) ??
+              PageLoadDTO(address: "", time: -1.0);
+        } on Exception catch (e) {
+          error = e.toString();
+        }
+
+        setState(() {
+          _result += "$pageLoadResult\n";
+        });
+        time--;
+      }
+    }
+
+    // End process   -------------------------------------------
+    if (!mounted) return;
+    setState(() {
+      executeEnable = true;
+      editEnable = true;
+    });
+  }
+
+  void callState(String act) {
+    switch (act) {
+      case "Ping":
+        pingState();
+        break;
+      case "PageLoad":
+        pageLoadState();
+        break;
+      case "DnsLookup":
+        // dnsLookupState();
+        break;
+      case "PortScan":
+        // portScanState();
+        break;
+      case "TraceRoute":
+        // traceRouteState();
+        break;
+      default:
+        break;
+    }
+  }
+
+  void onChanged(String? newValue) {
+    setState(() {
+      actionValue =
+          newValue!; // Update the actionValue variable with the newly selected value
+      // Call any other methods or update any other variables as needed
+      initInput(); // Example: Call initInput method
+    });
+  }
+
+  void stopExecute(String? p1) {
+    setState(() {
+      executeEnable = true;
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    // This method is rerun every time setState is called, for instance as done
-    // by the _incrementCounter method above.
-    //
-    // The Flutter framework has been optimized to make rerunning build methods
-    // fast, so that you can just rebuild anything that needs updating rather
-    // than having to individually change instances of widgets.
-    return Scaffold(
-      appBar: AppBar(
-        // TRY THIS: Try changing the color here to a specific color (to
-        // Colors.amber, perhaps?) and trigger a hot reload to see the AppBar
-        // change color while the other colors stay the same.
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        // Here we take the value from the MyHomePage object that was created by
-        // the App.build method, and use it to set our appbar title.
-        title: Text(widget.title),
-      ),
-      body: Center(
-        // Center is a layout widget. It takes a single child and positions it
-        // in the middle of the parent.
-        child: Column(
-          // Column is also a layout widget. It takes a list of children and
-          // arranges them vertically. By default, it sizes itself to fit its
-          // children horizontally, and tries to be as tall as its parent.
-          //
-          // Column has various properties to control how it sizes itself and
-          // how it positions its children. Here we use mainAxisAlignment to
-          // center the children vertically; the main axis here is the vertical
-          // axis because Columns are vertical (the cross axis would be
-          // horizontal).
-          //
-          // TRY THIS: Invoke "debug painting" (choose the "Toggle Debug Paint"
-          // action in the IDE, or press "p" in the console), to see the
-          // wireframe for each widget.
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            const Text(
-              'You have pushed the button this many times:',
-            ),
-            Text(
-              '$_counter',
-              style: Theme.of(context).textTheme.headlineMedium,
-            ),
-          ],
+    return MaterialApp(
+      home: Scaffold(
+        appBar: AppBar(
+          title: const Text('Plugin example app'),
+        ),
+        body: Center(
+          // child: Text('Running on: $_platformVersion\n'),
+          child: Column(
+            children: [
+              CustomDropdownButton(
+                executeEnable: executeEnable,
+                actionValue: actionValue,
+                actionValues: actionValues,
+                onChanged: onChanged,
+              ),
+              IpForm(controller: inputAddress),
+              TTLForm(
+                  visible: visibleTTL,
+                  enabled: enableTTL,
+                  controller: inputTTL),
+              DNSServerForm(
+                  visible: visibleServer,
+                  enabled: enableServer,
+                  inputServer: inputServer),
+              PortRangeForm(
+                  visible: visiblePort,
+                  enabled: enablePort,
+                  editEnable: editEnable,
+                  inputPortStart: inputPortStart,
+                  inputPortEnd: inputPortEnd),
+              const SizedBox(height: 30),
+              ExecuteButton(
+                  executeEnable: executeEnable,
+                  actionValue: actionValue,
+                  onPressed: callState,
+                  stopPressed: stopExecute),
+              const SizedBox(height: 12),
+              CustomResultWidget(
+                visibleProgress: visibleProgress,
+                currentPort: _currentPort,
+                endPort: _endPort,
+                actionValue: actionValue,
+                result: _result,
+              ),
+            ],
+          ),
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
-        tooltip: 'Increment',
-        child: const Icon(Icons.add),
-      ), // This trailing comma makes auto-formatting nicer for build methods.
     );
   }
 }

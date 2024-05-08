@@ -30,6 +30,10 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+    
+  ptnet_plugin:
+    git:
+      url: https://github.com/nghxxbxnhmx/ptnet_flutter_plugin
 
 
   # The following adds the Cupertino Icons font to your application.
