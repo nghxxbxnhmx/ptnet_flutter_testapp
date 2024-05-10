@@ -61,37 +61,45 @@ class CustomDropdownButton extends StatelessWidget {
 
 class IpForm extends StatelessWidget {
   final bool enabled;
+  final bool visible;
   final TextEditingController controller;
 
-  const IpForm({super.key, required this.controller, required this.enabled});
+  const IpForm(
+      {super.key,
+      required this.controller,
+      required this.enabled,
+      required this.visible});
 
   @override
   Widget build(BuildContext context) {
     return IgnorePointer(
-      ignoring: !enabled,
-      child: Container(
-        margin: const EdgeInsets.only(top: 16, bottom: 8, left: 8, right: 8),
-        decoration: BoxDecoration(
-          color: enabled ? Colors.white : Colors.grey[200],
-          borderRadius: BorderRadius.circular(8.0),
-          border: Border.all(
-            color: enabled ? Colors.grey : Colors.grey[400]!,
-            width: 1.0,
-          ),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.only(left: 8, right: 8, top: 4, bottom: 8),
-          child: TextFormField(
-            decoration: const InputDecoration(
-              border: UnderlineInputBorder(),
-              labelText: 'Enter IP/Domain',
+        ignoring: !enabled,
+        child: Visibility(
+          visible: visible,
+          child: Container(
+            margin:
+                const EdgeInsets.only(top: 16, bottom: 8, left: 8, right: 8),
+            decoration: BoxDecoration(
+              color: enabled ? Colors.white : Colors.grey[200],
+              borderRadius: BorderRadius.circular(8.0),
+              border: Border.all(
+                color: enabled ? Colors.grey : Colors.grey[400]!,
+                width: 1.0,
+              ),
             ),
-            enabled: enabled,
-            controller: controller,
+            child: Padding(
+              padding:
+                  const EdgeInsets.only(left: 8, right: 8, top: 4, bottom: 8),
+              child: TextFormField(
+                decoration: const InputDecoration(
+                  border: UnderlineInputBorder(),
+                  labelText: 'Enter IP/Domain',
+                ),
+                controller: controller,
+              ),
+            ),
           ),
-        ),
-      ),
-    );
+        ));
   }
 }
 
@@ -240,32 +248,17 @@ class DNSServerForm extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return IgnorePointer(
-      ignoring: !enabled,
-      child: Visibility(
-        visible: visible,
-        child: Container(
-          margin: const EdgeInsets.only(top: 16, bottom: 8, left: 8, right: 8),
-          decoration: BoxDecoration(
-            color: enabled ? Colors.white : Colors.grey[200],
-            borderRadius: BorderRadius.circular(8.0),
-            border: Border.all(
-              color: enabled ? Colors.grey : Colors.grey[400]!,
-              width: 1.0,
-            ),
+    return Visibility(
+      visible: visible,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 0),
+        child: TextFormField(
+          decoration: const InputDecoration(
+            border: UnderlineInputBorder(),
+            labelText: 'DNS Server',
           ),
-          child: Padding(
-            padding:
-                const EdgeInsets.only(left: 8, right: 8, top: 4, bottom: 8),
-            child: TextFormField(
-              decoration: const InputDecoration(
-                border: UnderlineInputBorder(),
-                labelText: 'DNS Server',
-              ),
-              enabled: enabled,
-              controller: inputServer,
-            ),
-          ),
+          enabled: enabled,
+          controller: inputServer,
         ),
       ),
     );
